@@ -1,0 +1,112 @@
+# 0.数据集结果下载（还未下载）
+
+为了方便进行基准测试和绘图，可以在下面下载BundleTrack位姿输出的结果
+
+- 对于 NOCS 数据集：https://archive.cs.rutgers.edu/archive/a/2021/pracsys/2021_iros_bundletrack/nocs_ours_results_iros2021.tar.gz
+- 对于 YCBInEOAT：https://archive.cs.rutgers.edu/archive/a/2021/pracsys/2021_iros_bundletrack/ycbineoat_ours_results.tar.gz
+
+# 1.进入Docker容器和代码调试配置文件
+
+### 1.1进入容器并编译
+
+对于环境设置，强烈建议使用我们提供的 docker 环境（从头开始设置非常复杂，本存储库不支持）。为此，您不必了解 docker 的工作原理。仅需要一些基本命令，并将在以下步骤中提供。
+
+1.拉取镜像
+
+```bash
+docker pull wenbowen123/bundletrack:latest 
+docker pull wenbowen123/lf-net-release-env:latest
+```
+
+2.更新路径
+
+编辑 docker/run_container.sh，更新`BUNDLETRACK_DIR`和`NOCS_DIR`的路径`YCBINEOAT_DIR`（这些路径里面是下载了权重和数据集之后的路径，有了这些路径，构建的容器里面才有这些内容）
+
+3.run容器
+
+```bash
+run bash docker/run_container.sh
+
+cd [PATH_TO_BUNDLETRACK]   #在容器内部进入BUNDLETRACK路径
+
+rm -rf build && mkdir build && cd build && cmake .. && make   #安装依赖
+```
+
+​		这里可以使用code进入docker的容器，然后在bundleTrack目录下直接编译rm -rf build && mkdir build && cd build && cmake .. && make 即可。
+
+### 1.2调试配置文件
+
+可以详见ORB_SLAM2中的Vscode+CMake编译和调试，把launch和tasks两个json文件改一下，这个容器的Cmakelists文件写的是set(CMAKE_BUILD_TYPE Release)，要改成set(CMAKE_BUILD_TYPE Debug)
+
+
+
+# 2.下载网络权重和数据集
+
+## 2.1权重下载
+
+根据您要运行的内容，下载必要的数据。
+
+- [下载特征检测网络的权重](https://archive.cs.rutgers.edu/archive/a/2021/pracsys/2021_iros_bundletrack/indoor.tar.gz)，提取并放在下面`lf-net-release/release/models`，这样就可以了`BundleTrack/lf-net-release/release/models/indoor`
+- [下载视频分割网络的权重](https://archive.cs.rutgers.edu/archive/a/2021/pracsys/2021_iros_bundletrack/pretrained.tar.gz)，解压并放在下面`./transductive-vos.pytorch`，这样就可以了`BundleTrack/transductive-vos.pytorch/pretrained`
+- [下载我们预先计算的掩码](https://archive.cs.rutgers.edu/archive/a/2021/pracsys/2021_iros_bundletrack/masks.tar.gz)，提取并放入存储库中，使其成为`BundleTrack/masks`
+
+## 2.2数据集下载
+
+主要是NOCS和YCBiEOAT数据集
+
+对于NOCS数据集这里可以进行下载https://github.com/hughw19/NOCS_CVPR2019。对于YCBiEOAT数据集，可以在这里下载https://archive.cs.rutgers.edu/archive/a/2020/pracsys/Bowen/iros2020/YCBInEOAT/
+
+wenbowen要求的NOCS数据存储格式为：
+
+```
+NOCS
+├── NOCS-REAL275-additional
+├── real_test
+├── gts
+|     └── real_test_text
+└── obj_models
+```
+
+这里需要注意的点是：NOCS-REAL275-additional这个文件是6-pack论文对nocs数据集的训练集增添的标签。real_test_text是wenbowen替换了原有的gts。NOCS的数据集除了CAMERA Dataset部分，下面的这三三个都下载放到BundleTrack里面了。
+
+- Real Dataset: [Training](http://download.cs.stanford.edu/orion/nocs/real_train.zip)/[Test](http://download.cs.stanford.edu/orion/nocs/real_test.zip)
+- Ground truth pose annotation (for an easier evaluation): [Val&Real_test](http://download.cs.stanford.edu/orion/nocs/gts.zip)
+- [Object Meshes](http://download.cs.stanford.edu/orion/nocs/obj_models.zip)
+
+YCBiEOAT数据存储要求为
+
+```
+YCBInEOAT
+    ├── bleach0
+    |       ├──annotated_poses
+    |       ├──depth
+    |       ├──depth_filled
+    |       ├──gt_mask
+    |       ├──masks
+    |       ├──masks_vis
+    |       ├──rgb
+    |       ├──cam_K.txt
+    |       ├──......
+    └── ....
+```
+
+这里需要注意的点是：只下载了bleach0.tar.gz 和bleach_hard_00_03_chaitanya.tar.gz，其中，在构建容器的时候第二个还没放进去，该数据集其他的都还没下载。
+
+```
+../
+bleach0.tar.gz                                     01-Oct-2020 20:16          2060595084
+bleach_hard_00_03_chaitanya.tar.gz                 01-Oct-2020 20:20          3139841525
+cracker_box_reorient.tar.gz                        01-Oct-2020 20:16          1477933744
+cracker_box_yalehand0.tar.gz                       01-Oct-2020 20:21          3309386399
+mustard0.tar.gz                                    01-Oct-2020 20:58          2478110464
+mustard_easy_00_02.tar.gz                          01-Oct-2020 20:58          2318849286
+sugar_box1.tar.gz                                  01-Oct-2020 20:59          3059415869
+sugar_box_yalehand0.tar.gz                         01-Oct-2020 21:06          2177999627
+tomato_soup_can_yalehand0.tar.gz                   01-Oct-2020 20:59          3100447922
+```
+
+# 3.测试NOCS和YCB数据集构建容器
+
+这里好像是在容器内部构建子容器，因为构建父容器的时候，没有用到lf-net的镜像，只用到了Bundle Track的镜像，这里应该要在容器内在构建一个，是继承lf的镜像。  
+
+明天做个ppt，做个效果，看看能不能成功在track里面跑个结果，跑不出来拉到，做完PPT学C++ 的类，然后学orbslam源码，然后再看动态slam和这个论文源码。
